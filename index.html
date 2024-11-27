@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced SIP Step-Up Calculator</title>
+    <script src="assets/js/chart.js"></script>
+    <link href="assets/css/css2.css" rel="stylesheet">
+    <style>
+        /* Global Styles */
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #00c6ff, #0072ff);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: #fff;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            overflow: hidden;
+            animation: fadeIn 1s ease-out;
+        }
+
+        .container h1 {
+            color: #333;
+            font-size: 30px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .input-group input {
+            width: 94%;
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+            transition: 0.3s ease-in-out;
+        }
+
+        .input-group input:focus {
+            border-color: #0072ff;
+            box-shadow: 0 0 8px rgba(0, 114, 255, 0.3);
+        }
+
+        /* Error message styling */
+        .error-message {
+            display: none;
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 10px;
+            font-weight: bold;
+            text-align: left;
+            background-color: #f8d7da;
+            border-left: 5px solid #e74c3c;
+            padding: 10px;
+            border-radius: 5px;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 14px 28px;
+            font-size: 18px;
+            color: #fff;
+            background-color: #0072ff;
+            border-radius: 8px;
+            text-decoration: none;
+            cursor: pointer;
+            margin: 10px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 114, 255, 0.3);
+        }
+
+        .btn.clear {
+            background-color: #e74c3c;
+        }
+
+        #result-table {
+            margin-top: 30px;
+            width: 100%;
+            border-collapse: collapse;
+            display: none;
+            animation: slideUp 1s ease-out;
+        }
+
+        #result-table th, #result-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+            font-size: 16px;
+        }
+
+        #result-table th {
+            background-color: #0072ff;
+            color: #fff;
+        }
+
+        #result-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        #result-table tr:hover {
+            background-color: #f1f1f1;
+            cursor: pointer;
+        }
+
+        /* Chart container */
+        #chart-container {
+            width: 100%;
+            height: 300px;
+            margin-top: 30px;
+            display: none;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Media Queries for responsiveness */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                max-width: 90%;
+            }
+
+            .input-group input {
+                font-size: 14px;
+            }
+
+            .btn {
+                font-size: 16px;
+                padding: 12px 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SIP Step-Up Calculator</h1>
+        <div class="input-group">
+            <input type="number" id="amount" min="1000" placeholder="Investment Amount" />
+        </div>
+        <div class="input-group">
+            <input type="number" id="years" min="1" placeholder="Number of Years" />
+        </div>
+        <div class="input-group">
+            <input type="number" id="percent" min="10" placeholder="Step Up percent" />
+        </div>
+        <div id="error-message" class="error-message"></div>
+        <div>
+            <a href="#" id="paybtn" class="btn">Calculate</a>
+            <a href="#" id="clearbtn" class="btn clear">Clear</a>
+        </div>
+        <div id="result-container">
+            <table id="result-table">
+                <thead>
+                    <tr>
+                        <th>Year</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Results will be appended here -->
+                </tbody>
+            </table>
+            <div id="chart-container">
+                <canvas id="myChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const calculate = document.getElementById('paybtn');
+        const clearButton = document.getElementById('clearbtn');
+        const resultTable = document.getElementById('result-table');
+        const resultBody = resultTable.querySelector('tbody');
+        const chartContainer = document.getElementById('chart-container');
+        const ctx = document.getElementById('myChart').getContext('2d');
+        const errorMessage = document.getElementById('error-message');
+        
+        let chart = null;
+
+        // Calculate button click event
+        calculate.addEventListener('click', function () {
+            const amountInput = document.getElementById('amount');
+            const yearsInput = document.getElementById('years');
+            const percentInput = document.getElementById('percent');
+            const amount = parseFloat(amountInput.value);
+            const years = parseInt(yearsInput.value);
+            const percent = parseInt(percentInput.value);
+
+            // Clear previous error messages
+            errorMessage.style.display = 'none';
+
+            if (isNaN(amount) || isNaN(years) || amount <= 0 || years <= 0 || percent == '' || isNaN(percent)) {
+                errorMessage.style.display = 'block';
+                errorMessage.textContent = "Please enter valid positive numbers for amount and years.";
+                return;
+            }
+
+            if (amount < 1000 ) {
+                errorMessage.style.display = 'block';
+                errorMessage.textContent = "Please enter a amount greater than 1000 Rupees";
+                return;
+            }
+
+            if (percent < 10 ) {
+                errorMessage.style.display = 'block';
+                errorMessage.textContent = "Please enter a Step Up Percent greater than 9 %";
+                return;
+            }
+
+            // Clear previous results
+            resultBody.innerHTML = '';
+            resultTable.style.display = 'table';
+            chartContainer.style.display = 'block';
+
+            let currentAmount = amount;
+
+            const yearsData = [];
+            const amountsData = [];
+
+            // Year-by-year calculations
+            for (let year = 1; year <= years; year++) {
+                if (year > 1) {
+                    const increment = (currentAmount / 100) * percent;
+                    currentAmount += increment;
+                    currentAmount = Math.round(currentAmount);
+                }
+
+                // Add result to table
+                const row = document.createElement('tr');
+                const yearCell = document.createElement('td');
+                const amountCell = document.createElement('td');
+                yearCell.textContent = year;
+                amountCell.textContent = currentAmount;
+                row.appendChild(yearCell);
+                row.appendChild(amountCell);
+                resultBody.appendChild(row);
+
+                yearsData.push(year);
+                amountsData.push(currentAmount);
+            }
+
+            // Update the chart with new data
+            if (chart) {
+                chart.destroy(); // Destroy the previous chart instance
+            }
+
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: yearsData,
+                    datasets: [{
+                        label: 'Investment Growth',
+                        data: amountsData,
+                        backgroundColor: 'rgba(0, 114, 255, 0.6)',
+                        borderColor: '#0072ff',
+                        borderWidth: 2,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) { return value.toLocaleString(); }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        });
+
+        // Clear button click event
+        clearButton.addEventListener('click', function () {
+            // Clear input fields
+            document.getElementById('amount').value = '';
+            document.getElementById('years').value = '';
+
+            // Clear the table and chart
+            resultBody.innerHTML = '';
+            resultTable.style.display = 'none';
+            chartContainer.style.display = 'none';
+
+            // Clear the error message
+            errorMessage.style.display = 'none';
+
+            if (chart) {
+                chart.destroy();
+            }
+        });
+    </script>
+</body>
+</html>
